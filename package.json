@@ -13,17 +13,23 @@
   "author": "Martin Paakspuu",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^2.0.0",
     "body-parser": "^1.18.2",
     "chai": "^4.1.2",
     "cookie-parser": "^1.4.3",
+    "dotenv": "^5.0.1",
     "errorhandler": "^1.5.0",
     "express": "^4.16.3",
     "express-session": "^1.15.6",
     "janus-videoroom-client": "^3.2.7",
+    "jsonwebtoken": "^8.2.1",
     "method-override": "^2.3.10",
     "mongodb": "^3.0.6",
     "mongoose": "^5.0.14",
     "morgan": "^1.9.0",
+    "passport": "^0.4.0",
+    "passport-jwt": "^4.0.0",
+    "passport-local": "^1.0.0",
     "ws": "^5.1.1"
   },
   "devDependencies": {
@@ -32,12 +38,12 @@
     "@types/cookie-parser": "^1.4.1",
     "@types/errorhandler": "0.0.32",
     "@types/method-override": "0.0.31",
-    "@types/mocha": "^5.0.0",
     "@types/morgan": "^1.7.35",
     "grunt": "^1.0.2",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-watch": "^1.0.0",
     "grunt-ts": "^6.0.0-beta.19",
+    "mocha": "^5.1.1",
     "mocha-typescript": "^1.1.12",
     "typescript": "^2.8.1"
   }

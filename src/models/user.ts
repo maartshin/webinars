@@ -1,4 +1,6 @@
 import { Document, Schema, Model, model} from "mongoose";
+import * as bcrypt from "bcrypt";
+import { AuthenticationService } from "../services/authentication.srv";
 
 export interface IUserModel extends IUser, Document {
     
@@ -9,7 +11,6 @@ export interface IUser{
     email:string;
     username:string;
     password:string;
-    passwordConf:string;
 }
 
 export var UserSchema: Schema = new Schema({
@@ -28,10 +29,6 @@ export var UserSchema: Schema = new Schema({
     password: {
         type: String,
         required: true,
-    },
-    passwordConf: {
-        type: String,
-        required: true
     }
 });
 
@@ -40,8 +37,23 @@ UserSchema.pre("save", function(next) {
     if (!this.createdAt) {
       this.createdAt = now;
     }
-    next();
+    bcrypt.hash(this.password, 10, (err, hash) => {
+        if(err){
+            return next(err);
+        }
+        this.password = hash;
+        next();
+    });
 });
+
+// UserSchema.methods.generateJwT = function(){
+//     console.log("generating token");
+    
+// }
+
+UserSchema.methods.validPassword = function(password){
+    return bcrypt.compareSync(password, this.password);
+}
 
 export const User: Model<IUserModel> = model<IUserModel>("User", UserSchema);
 

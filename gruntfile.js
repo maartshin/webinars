@@ -31,7 +31,7 @@ module.exports = function(grunt) {
           target: "es6",
           sourceMap: false,
           rootDir: "src",
-		  experimentalDecorators: true
+          experimentalDecorators: true
         }
       }
     },

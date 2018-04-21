@@ -5,8 +5,10 @@ const child_process_1 = require("child_process");
 const util = require("util");
 class JanusService {
     constructor() {
+        let host = process.env.JANUS_HOST;
+        let port = process.env.JANUS_PORT;
         this.janusClient = new janus_videoroom_client_1.Janus({
-            url: "wss://localhost:8989"
+            url: util.format("wss://%s:%s", host, port)
         });
     }
     connect(connection) {

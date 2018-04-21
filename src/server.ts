@@ -7,13 +7,16 @@ import * as https from "https";
 import * as WebSocket from "ws";
 import * as fs from "fs";
 import * as session from "express-session";
-import { mongoose } from "mongoose";
+import mongoose = require("mongoose");
 import { SocketController } from "./socket.controller";
 import errorHandler = require("errorhandler");
 import methodOverride = require("method-override");
-import { IModel } from "./models/model";
-import { IUserModel, UserSchema } from "./models/user";
-
+import { AuthenticationService } from "./services/authentication.srv";
+import testRouter = require("./routes/test.router");
+import userRouter = require("./routes/user.router");
+import * as passport from "passport";
+import * as util from "util";
+require('dotenv').config();
 
 export class Server {
 
@@ -23,7 +26,6 @@ export class Server {
     private socket: WebSocket.Server;
     private app: express.Application;
     private static store = new session.MemoryStore();
-    private model:IModel;
 
     public static bootstrap():Server{
         return new Server();
@@ -34,20 +36,21 @@ export class Server {
         this.config();
         this.createServer();
         this.sockets();
+        this.configureRoutes();
         this.listen();
         this.addErrorHandler();
     }
 
     private config() {
-        const MONGODB_CONNECTION: string = "mongodb://localhost:27017/heros";
+        let db = process.env.DB_NAME;
+        let port = process.env.DB_PORT;
+        let host = process.env.DB_HOST;
+
+        const MONGODB_CONNECTION: string = util.format("mongodb://%s:%s/%s", host, port, db);
 
         //add static paths
         this.app.use(express.static(path.join(__dirname, "public")));
 
-        //configure pug
-        this.app.set("views", path.join(__dirname, "views"));
-        this.app.set("view engine", "pug");
-        
         //use logger middlware
         this.app.use(logger("dev"));
 
@@ -66,28 +69,27 @@ export class Server {
         //use override middlware
         this.app.use(methodOverride());
 
+        passport.use(AuthenticationService.createStrategy());
+        passport.use(AuthenticationService.createJWTStrategy());
+
+        this.app.use(passport.initialize());
+        this.app.use(passport.session());
+
         //catch 404 and forward to error handler
         this.app.use(function(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
             err.status = 404;
             next(err);
         });
 
-        this.app.use(session({
-            store: Server.store,
-            secret: "secret",
-            key: "sid",
-            // cookie: {}
-        }));
+        // this.app.use(session({
+        //     store: Server.store,
+        //     secret: "secret",
+        //     resave: true,
+        //     saveUninitialized: false
+        // }));
 
-         //use q promises
-        // global.Promise = require("q").Promise;
-        // mongoose.Promise = global.Promise;
-        
         // connect to mongoose
-        let connection: mongoose.Connection = mongoose.createConnection(MONGODB_CONNECTION);
-
-        // create models
-        this.model.user = connection.model<IUserModel>("User", UserSchema);
+        mongoose.connect(MONGODB_CONNECTION)
 
         //error handling
         this.app.use(errorHandler());
@@ -124,6 +126,11 @@ export class Server {
 
     public static getStore(){
         return Server.store;
+    }
+
+    private configureRoutes(){
+        this.app.use("/test", testRouter);
+        this.app.use("/user", userRouter);
     }
 
     private addErrorHandler(){

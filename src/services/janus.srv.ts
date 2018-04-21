@@ -10,8 +10,10 @@ export class JanusService{
     listenerHandle:any;
     
     constructor(){
+        let host = process.env.JANUS_HOST;
+        let port = process.env.JANUS_PORT;
         this.janusClient = new Janus({
-            url: "wss://localhost:8989"
+            url: util.format("wss://%s:%s", host, port)
         });
     }
 
@@ -81,7 +83,8 @@ export class JanusService{
             connection.getSocket().send(JSON.stringify({event: "onoffer", sdp:{sdp:offerSdp, type: "offer"} }));
             console.log("offer sent");
         }).catch((error) => {
-            console.log("error listening to feed:" + feed);
+            console.log("ervyouyou
+            youoojkmngvfcdxsza<adaFASDFASDFASDFASDSDFASDFADSFASDFror listening to feed:" + feed);
             console.log(error);
         });
     }

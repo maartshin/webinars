@@ -9,17 +9,23 @@ const https = require("https");
 const WebSocket = require("ws");
 const fs = require("fs");
 const session = require("express-session");
-const mongoose_1 = require("mongoose");
+const mongoose = require("mongoose");
 const socket_controller_1 = require("./socket.controller");
 const errorHandler = require("errorhandler");
 const methodOverride = require("method-override");
-const user_1 = require("./models/user");
+const authentication_srv_1 = require("./services/authentication.srv");
+const testRouter = require("./routes/test.router");
+const userRouter = require("./routes/user.router");
+const passport = require("passport");
+const util = require("util");
+require('dotenv').config();
 class Server {
     constructor() {
         this.app = express();
         this.config();
         this.createServer();
         this.sockets();
+        this.configureRoutes();
         this.listen();
         this.addErrorHandler();
     }
@@ -27,10 +33,11 @@ class Server {
         return new Server();
     }
     config() {
-        const MONGODB_CONNECTION = "mongodb://localhost:27017/heros";
+        let db = process.env.DB_NAME;
+        let port = process.env.DB_PORT;
+        let host = process.env.DB_HOST;
+        const MONGODB_CONNECTION = util.format("mongodb://%s:%s/%s", host, port, db);
         this.app.use(express.static(path.join(__dirname, "public")));
-        this.app.set("views", path.join(__dirname, "views"));
-        this.app.set("view engine", "pug");
         this.app.use(logger("dev"));
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({
@@ -38,17 +45,15 @@ class Server {
         }));
         this.app.use(cookieParser());
         this.app.use(methodOverride());
+        passport.use(authentication_srv_1.AuthenticationService.createStrategy());
+        passport.use(authentication_srv_1.AuthenticationService.createJWTStrategy());
+        this.app.use(passport.initialize());
+        this.app.use(passport.session());
         this.app.use(function (err, req, res, next) {
             err.status = 404;
             next(err);
         });
-        this.app.use(session({
-            store: Server.store,
-            secret: "secret",
-            key: "sid",
-        }));
-        let connection = mongoose_1.mongoose.createConnection(MONGODB_CONNECTION);
-        this.model.user = connection.model("User", user_1.UserSchema);
+        mongoose.connect(MONGODB_CONNECTION);
         this.app.use(errorHandler());
         this.port = Server.PORT;
         this.app.set("port", this.port);
@@ -76,6 +81,10 @@ class Server {
     }
     static getStore() {
         return Server.store;
+    }
+    configureRoutes() {
+        this.app.use("/test", testRouter);
+        this.app.use("/user", userRouter);
     }
     addErrorHandler() {
         this.server.on("error", (error) => {

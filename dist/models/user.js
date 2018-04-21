@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
+const bcrypt = require("bcrypt");
 exports.UserSchema = new mongoose_1.Schema({
     email: {
         type: String,
@@ -17,10 +18,6 @@ exports.UserSchema = new mongoose_1.Schema({
     password: {
         type: String,
         required: true,
-    },
-    passwordConf: {
-        type: String,
-        required: true
     }
 });
 exports.UserSchema.pre("save", function (next) {
@@ -28,6 +25,15 @@ exports.UserSchema.pre("save", function (next) {
     if (!this.createdAt) {
         this.createdAt = now;
     }
-    next();
+    bcrypt.hash(this.password, 10, (err, hash) => {
+        if (err) {
+            return next(err);
+        }
+        this.password = hash;
+        next();
+    });
 });
+exports.UserSchema.methods.validPassword = function (password) {
+    return bcrypt.compareSync(password, this.password);
+};
 exports.User = mongoose_1.model("User", exports.UserSchema);
