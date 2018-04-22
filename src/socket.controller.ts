@@ -63,7 +63,7 @@ export class SocketController{
     private invokeEvent(connection, data){
         let ws = connection.getSocket();
         switch(data["event"]){
-            case "new": this.createRoom(connection);
+            case "new": this.createRoom(connection, data);
                 break;
             case "connection": this.connectionInfo(connection);
                 break;
@@ -76,8 +76,6 @@ export class SocketController{
             case "onanswer": this.onAnswer(connection, data);
                 break;
             case "rooms" : this.getRooms(connection, data);
-                break;
-            case "record": this.record(connection, data);
                 break;
             case "stoprecording": this.stopRecording(connection, data);
                 break;
@@ -96,14 +94,14 @@ export class SocketController{
         this.socket.send(JSON.stringify({message: "Connected to janus"}));
     }
 
-    private createRoom(connection){
-        this.janusService.createRoom(connection);
+    private createRoom(connection, data){
+        this.janusService.createRoom(connection, data.options);
     }
 
     private onAnswer(connection, data){
-        console.log(data);
-        connection.getListenerHandlers()[0].setRemoteAnswer(data.sdp);
-        // this.janusService.listenerHandle.setRemoteAnswer(data.sdp);
+        console.log("answer received");
+        console.log(data["feed"]);
+        connection.getListenerHandler(data["feed"]).setRemoteAnswer(data.sdp);
     }
 
     private connectionInfo(connection){
@@ -119,15 +117,11 @@ export class SocketController{
     }
 
     private publishFeed(connection, data){
-        this.janusService.publishFeed(connection, data["room"], data["sdp"]);
+        this.janusService.publishFeed(connection, data);
     }
 
     private trickleIce(connection, data){
         this.janusService.trickle(connection, data);
-    }
-
-    private record(connection, data){
-        this.janusService.record(connection);
     }
 
     private stopRecording(connection, data){

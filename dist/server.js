@@ -8,7 +8,6 @@ const path = require("path");
 const https = require("https");
 const WebSocket = require("ws");
 const fs = require("fs");
-const session = require("express-session");
 const mongoose = require("mongoose");
 const socket_controller_1 = require("./socket.controller");
 const errorHandler = require("errorhandler");
@@ -79,9 +78,6 @@ class Server {
     getApp() {
         return this.app;
     }
-    static getStore() {
-        return Server.store;
-    }
     configureRoutes() {
         this.app.use("/test", testRouter);
         this.app.use("/user", userRouter);
@@ -110,5 +106,4 @@ class Server {
     }
 }
 Server.PORT = "8080";
-Server.store = new session.MemoryStore();
 exports.Server = Server;

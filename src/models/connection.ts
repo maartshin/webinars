@@ -3,7 +3,7 @@ export class Connection{
     private socket;
     private janusSession;
     private publisherHandlers = [];
-    private listenerHandlers = [];
+    private listenerHandlers = {};
 
     constructor(socket){
         this.socket = socket;
@@ -21,8 +21,8 @@ export class Connection{
         return this.janusSession;
     }
 
-    public addListenerHandle(handler){
-        this.listenerHandlers.push(handler);
+    public addListenerHandle(handler, key){
+        this.listenerHandlers[key] = handler;
     }
 
     public addPublisherHandler(handler){
@@ -31,6 +31,10 @@ export class Connection{
 
     public getListenerHandlers(){
         return this.listenerHandlers;
+    }
+
+    public getListenerHandler(key){
+        return this.listenerHandlers[key];
     }
 
     public getPublisherHandles(){

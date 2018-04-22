@@ -49,7 +49,7 @@ class SocketController {
         let ws = connection.getSocket();
         switch (data["event"]) {
             case "new":
-                this.createRoom(connection);
+                this.createRoom(connection, data);
                 break;
             case "connection":
                 this.connectionInfo(connection);
@@ -69,9 +69,6 @@ class SocketController {
             case "rooms":
                 this.getRooms(connection, data);
                 break;
-            case "record":
-                this.record(connection, data);
-                break;
             case "stoprecording":
                 this.stopRecording(connection, data);
                 break;
@@ -87,12 +84,13 @@ class SocketController {
     connectToJanus(ws) {
         this.socket.send(JSON.stringify({ message: "Connected to janus" }));
     }
-    createRoom(connection) {
-        this.janusService.createRoom(connection);
+    createRoom(connection, data) {
+        this.janusService.createRoom(connection, data.options);
     }
     onAnswer(connection, data) {
-        console.log(data);
-        connection.getListenerHandlers()[0].setRemoteAnswer(data.sdp);
+        console.log("answer received");
+        console.log(data["feed"]);
+        connection.getListenerHandler(data["feed"]).setRemoteAnswer(data.sdp);
     }
     connectionInfo(connection) {
         console.log("socket:");
@@ -105,13 +103,10 @@ class SocketController {
         this.janusService.getFeeds(connection, data["room"]);
     }
     publishFeed(connection, data) {
-        this.janusService.publishFeed(connection, data["room"], data["sdp"]);
+        this.janusService.publishFeed(connection, data);
     }
     trickleIce(connection, data) {
         this.janusService.trickle(connection, data);
-    }
-    record(connection, data) {
-        this.janusService.record(connection);
     }
     stopRecording(connection, data) {
         this.janusService.stopRecording(connection);

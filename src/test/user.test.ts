@@ -7,7 +7,7 @@ import * as bcrypt from "bcrypt";
 class UserTest{
 
     private data: IUser;
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
     public static User: mongoose.Model<IUserModel>;
 
     public static before(){

@@ -25,7 +25,7 @@ export class Server {
     private server: https.Server;
     private socket: WebSocket.Server;
     private app: express.Application;
-    private static store = new session.MemoryStore();
+    // private static store = new session.MemoryStore();
 
     public static bootstrap():Server{
         return new Server();
@@ -124,9 +124,9 @@ export class Server {
         return this.app;
     }
 
-    public static getStore(){
-        return Server.store;
-    }
+    // public static getStore(){
+    //     return Server.store;
+    // }
 
     private configureRoutes(){
         this.app.use("/test", testRouter);

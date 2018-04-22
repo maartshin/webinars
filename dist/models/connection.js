@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class Connection {
     constructor(socket) {
         this.publisherHandlers = [];
-        this.listenerHandlers = [];
+        this.listenerHandlers = {};
         this.socket = socket;
     }
     getSocket() {
@@ -15,14 +15,17 @@ class Connection {
     getSession() {
         return this.janusSession;
     }
-    addListenerHandle(handler) {
-        this.listenerHandlers.push(handler);
+    addListenerHandle(handler, key) {
+        this.listenerHandlers[key] = handler;
     }
     addPublisherHandler(handler) {
         this.publisherHandlers.push(handler);
     }
     getListenerHandlers() {
         return this.listenerHandlers;
+    }
+    getListenerHandler(key) {
+        return this.listenerHandlers[key];
     }
     getPublisherHandles() {
         return this.publisherHandlers;
