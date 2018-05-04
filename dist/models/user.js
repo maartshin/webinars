@@ -18,7 +18,8 @@ exports.UserSchema = new mongoose_1.Schema({
     password: {
         type: String,
         required: true,
-    }
+    },
+    captures: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Capture' }]
 });
 exports.UserSchema.pre("save", function (next) {
     let now = new Date();

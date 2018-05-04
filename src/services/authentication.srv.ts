@@ -1,11 +1,11 @@
 import { UserSchema, IUserModel, User} from "../models/user";
-// import mongoose = require("mongoose");
 import * as bcrypt from "bcrypt";
 import { Strategy } from "passport-local";
-import { Server } from "../server";
 import jwt = require('jsonwebtoken');
 import { Strategy as JWTStrategy, ExtractJwt } from "passport-jwt";
+import { injectable } from "inversify";
 
+@injectable()
 export class AuthenticationService{
     
     public static createStrategy(){
@@ -18,7 +18,7 @@ export class AuthenticationService{
                     });
                 }
 
-                if(!AuthenticationService.isValidPassword(user.password, password)){
+                if(!this.isValidPassword(user.password, password)){
                     return done(null, false, {
                         message: 'Password is wrong'
                     });
@@ -29,7 +29,7 @@ export class AuthenticationService{
         });
     }
 
-    public static createToken(user){
+    public createToken(user){
         var expiry: Date = new Date();
         expiry.setDate(expiry.getDate() + 7);
         console.log(user._id);

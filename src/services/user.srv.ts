@@ -2,19 +2,24 @@ import { IUserModel, User } from "../models/user";
 import mongoose = require("mongoose");
 import { Server } from "../server";
 import passport = require("passport");
+import { inject } from "inversify";
+import TYPES from "../constant/types";
 import { AuthenticationService } from "../services/authentication.srv";
+import { injectable } from 'inversify';
 
-// passport.use(AuthenticationService.createStrategy());
-
+@injectable()
 export class UserService{
 
-    public static register(user: IUserModel): Promise<any>{
+    @inject(TYPES.AuthenticationService)
+    private authenticationService: AuthenticationService;
+
+    public register(user: IUserModel): Promise<any>{
         return new User(user).save();
     }
 
-    public static login(req, res){
+    public login(req, res){
         console.log("logging in");
-        passport.authenticate("local", (err, user, info) => {
+        return passport.authenticate("local", (err, user, info) => {
             // If Passport throws/catches an error
             if (err) {
                 console.log("error");
@@ -27,7 +32,7 @@ export class UserService{
             if(user){
                 res.status(200);
                 res.json({
-                    "token" : "bearer "+AuthenticationService.createToken(user)
+                    "token" : "bearer " + this.authenticationService.createToken(user)
                 });
             } else {
                 res.status(401).json(info);

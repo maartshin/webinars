@@ -3,22 +3,29 @@ import { JanusService } from "./services/janus.srv";
 import * as cookieParser from "cookie-parser";
 import { Server } from "./server";
 import { Connection } from "./models/connection";
+import { EventEmitter } from "events";
 
 export class SocketController{
+
+    // @inject(TYPES.JanusService)
+    // private janusService: JanusService;
 
     janusService:JanusService = new JanusService();
     socket: any;
     sessions = {};
     connections: Connection[] = [];
+    eventEmitter:EventEmitter = new EventEmitter();
 
     private constructor(){
-       
+       this.addEventListeners();
     }
 
     public static init(ws: WebSocket, req){
+        // console.log(req);
         let controller = new SocketController();
         // controller.addSession(req);
         // controller.setSocket(ws);
+        
         let connection = controller.addConnection(ws);
         controller.addEvents(connection);
     }
@@ -40,15 +47,12 @@ export class SocketController{
             var sessionID = req.signedCookies;
             console.log(req.session);
             console.log(sessionID);
-            // console.log("session id: " + sessionID);
         });
-        // console.log(Server.getStore());
-        // cookieParser(req, )
     }
 
     private addEvents(connection: Connection){
         let ws = connection.getSocket();
-        ws.on('message', (message: string) => {
+        ws.on("message", (message: string) => {
             let data;
             try{
                 data = JSON.parse(message);
@@ -57,7 +61,25 @@ export class SocketController{
                 return;
             }
             this.invokeEvent(connection, data);
+            // this.eventEmitter.emit(data["event"], connection, data);
         });
+
+        ws.on("close", () => {
+            connection.getSession().destroy().then(()=>{
+                console.log("Janus Gateway session destroyed");
+            });
+        });
+    }
+
+    private addEventListeners(){
+        this.eventEmitter.on("new", this.createRoom);
+        this.eventEmitter.on("connection", this.connectionInfo);
+        this.eventEmitter.on("publish", this.publishFeed);
+        this.eventEmitter.on("feeds", this.getFeeds);
+        this.eventEmitter.on("ice", this.trickleIce);
+        this.eventEmitter.on("onanswer", this.onAnswer);
+        this.eventEmitter.on("rooms", this.getRooms);
+        this.eventEmitter.on("stoprecording", this.stopRecording);
     }
 
     private invokeEvent(connection, data){
@@ -95,6 +117,8 @@ export class SocketController{
     }
 
     private createRoom(connection, data){
+        console.log("creating room");
+        console.log(data);
         this.janusService.createRoom(connection, data.options);
     }
 

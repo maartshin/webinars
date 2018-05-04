@@ -16,6 +16,7 @@ let UserTest = UserTest_1 = class UserTest {
             email: "peeter2@pakiraam.ee",
             username: "peeter2",
             password: "pakiraam",
+            captures: []
         };
     }
     static before() {

@@ -1,6 +1,7 @@
 import { Document, Schema, Model, model} from "mongoose";
 import * as bcrypt from "bcrypt";
 import { AuthenticationService } from "../services/authentication.srv";
+import { ICaptureModel } from "./capture";
 
 export interface IUserModel extends IUser, Document {
     
@@ -11,6 +12,7 @@ export interface IUser{
     email:string;
     username:string;
     password:string;
+    captures: ICaptureModel[];
 }
 
 export var UserSchema: Schema = new Schema({
@@ -29,7 +31,8 @@ export var UserSchema: Schema = new Schema({
     password: {
         type: String,
         required: true,
-    }
+    },
+    captures: [{ type: Schema.Types.ObjectId, ref: 'Capture' }]
 });
 
 UserSchema.pre("save", function(next) {

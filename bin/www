@@ -13,7 +13,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 //var app = server.Server.bootstrap().app;
 //app.set("port", httpPort);
 //var httpServer = http.createServer(app);
-var app = server.Server.bootstrap().getApp();
+var app = server.Server.bootstrap();
 
 //listen on provided ports
 //httpServer.listen(httpPort);

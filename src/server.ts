@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import * as bodyParser from "body-parser";
 import * as cookieParser from "cookie-parser";
 import * as express from "express";
@@ -7,15 +8,21 @@ import * as https from "https";
 import * as WebSocket from "ws";
 import * as fs from "fs";
 import * as session from "express-session";
+import { Container } from 'inversify';
+import { InversifyExpressServer } from 'inversify-express-utils';
 import mongoose = require("mongoose");
 import { SocketController } from "./socket.controller";
 import errorHandler = require("errorhandler");
 import methodOverride = require("method-override");
 import { AuthenticationService } from "./services/authentication.srv";
-import testRouter = require("./routes/test.router");
-import userRouter = require("./routes/user.router");
 import * as passport from "passport";
 import * as util from "util";
+import { UserService } from "./services/user.srv";
+import { JanusService } from "./services/janus.srv";
+import TYPES from './constant/types';
+import './controllers/user.controller';
+import './controllers/stream.controller';
+import { StreamService } from "./services/stream.srv";
 require('dotenv').config();
 
 export class Server {
@@ -24,7 +31,7 @@ export class Server {
     private port: string | number;
     private server: https.Server;
     private socket: WebSocket.Server;
-    private app: express.Application;
+    // private app: express.Application;
     // private static store = new session.MemoryStore();
 
     public static bootstrap():Server{
@@ -32,16 +39,25 @@ export class Server {
     }
 
     constructor() {
-        this.app = express();
-        this.config();
-        this.createServer();
+        let container = this.loadContainer();
+        let server = new InversifyExpressServer(container);
+        server.setConfig(this.config);
+        let app = server.build();
+        this.createServer(app);
+        // this.configureRoutes(app);
         this.sockets();
-        this.configureRoutes();
         this.listen();
-        this.addErrorHandler();
+        // serverInstance.listen(this.port, );
+        // let app = express();
+        // this.config(app);
+        // this.createServer(app);
+        // this.sockets();
+        // this.configureRoutes(app);
+        // this.listen();
+        // this.addErrorHandler();
     }
 
-    private config() {
+    private config(app) {
         let db = process.env.DB_NAME;
         let port = process.env.DB_PORT;
         let host = process.env.DB_HOST;
@@ -49,63 +65,64 @@ export class Server {
         const MONGODB_CONNECTION: string = util.format("mongodb://%s:%s/%s", host, port, db);
 
         //add static paths
-        this.app.use(express.static(path.join(__dirname, "public")));
+        app.use(express.static(path.join(__dirname, "public")));
 
         //use logger middlware
-        this.app.use(logger("dev"));
+        app.use(logger("dev"));
 
         //use json form parser middlware
-        this.app.use(bodyParser.json());
+        app.use(bodyParser.json());
 
         //use query string parser middlware
-        this.app.use(bodyParser.urlencoded({
+        app.use(bodyParser.urlencoded({
             extended: true
         }));
 
         //use cookie parser middleware
         // this.app.use(cookieParser("SECRET_GOES_HERE"));
-        this.app.use(cookieParser());
+        app.use(cookieParser());
 
         //use override middlware
-        this.app.use(methodOverride());
+        app.use(methodOverride());
 
         passport.use(AuthenticationService.createStrategy());
         passport.use(AuthenticationService.createJWTStrategy());
 
-        this.app.use(passport.initialize());
-        this.app.use(passport.session());
+        app.use(passport.initialize());
+        app.use(passport.session());
 
         //catch 404 and forward to error handler
-        this.app.use(function(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
+        app.use(function(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
             err.status = 404;
             next(err);
         });
-
-        // this.app.use(session({
-        //     store: Server.store,
-        //     secret: "secret",
-        //     resave: true,
-        //     saveUninitialized: false
-        // }));
 
         // connect to mongoose
         mongoose.connect(MONGODB_CONNECTION)
 
         //error handling
-        this.app.use(errorHandler());
+        app.use(errorHandler());
 
-        this.port = Server.PORT;
-        this.app.set("port", this.port);
-        
+        // this.port = Server.PORT;
+        app.set("port", Server.PORT);
     }
 
-    private createServer(){
+    private loadContainer(){
+        let container = new Container();
+        container.bind<UserService>(TYPES.UserService).to(UserService);
+        container.bind<AuthenticationService>(TYPES.AuthenticationService).to(AuthenticationService);
+        container.bind<JanusService>(TYPES.JanusService).to(JanusService);
+        container.bind<StreamService>(TYPES.StreamService).to(StreamService);
+        return container;
+    }
+
+    private createServer(app){
         let privateKey = fs.readFileSync(__dirname + '/../ssl/privateKey.key');
         let certificate = fs.readFileSync(__dirname + '/../ssl/certificate.crt');
         this.server = https.createServer({
             key: privateKey,
 	        cert: certificate
-        }, this.app);
+        }, app);
     }
 
     private sockets(){
@@ -115,22 +132,9 @@ export class Server {
 
     private listen(): void{
         console.log("listen");
-        this.server.listen(this.port, () => {
-            console.log('Running server on port %s', this.port);
+        this.server.listen(Server.PORT, () => {
+            console.log('Running server on port %s', Server.PORT);
         });
-    }
-
-    public getApp(){
-        return this.app;
-    }
-
-    // public static getStore(){
-    //     return Server.store;
-    // }
-
-    private configureRoutes(){
-        this.app.use("/test", testRouter);
-        this.app.use("/user", userRouter);
     }
 
     private addErrorHandler(){

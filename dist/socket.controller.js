@@ -3,11 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const janus_srv_1 = require("./services/janus.srv");
 const cookieParser = require("cookie-parser");
 const connection_1 = require("./models/connection");
+const events_1 = require("events");
 class SocketController {
     constructor() {
         this.janusService = new janus_srv_1.JanusService();
         this.sessions = {};
         this.connections = [];
+        this.eventEmitter = new events_1.EventEmitter();
+        this.addEventListeners();
     }
     static init(ws, req) {
         let controller = new SocketController();
@@ -33,7 +36,7 @@ class SocketController {
     }
     addEvents(connection) {
         let ws = connection.getSocket();
-        ws.on('message', (message) => {
+        ws.on("message", (message) => {
             let data;
             try {
                 data = JSON.parse(message);
@@ -44,6 +47,21 @@ class SocketController {
             }
             this.invokeEvent(connection, data);
         });
+        ws.on("close", () => {
+            connection.getSession().destroy().then(() => {
+                console.log("Janus Gateway session destroyed");
+            });
+        });
+    }
+    addEventListeners() {
+        this.eventEmitter.on("new", this.createRoom);
+        this.eventEmitter.on("connection", this.connectionInfo);
+        this.eventEmitter.on("publish", this.publishFeed);
+        this.eventEmitter.on("feeds", this.getFeeds);
+        this.eventEmitter.on("ice", this.trickleIce);
+        this.eventEmitter.on("onanswer", this.onAnswer);
+        this.eventEmitter.on("rooms", this.getRooms);
+        this.eventEmitter.on("stoprecording", this.stopRecording);
     }
     invokeEvent(connection, data) {
         let ws = connection.getSocket();
@@ -85,6 +103,8 @@ class SocketController {
         this.socket.send(JSON.stringify({ message: "Connected to janus" }));
     }
     createRoom(connection, data) {
+        console.log("creating room");
+        console.log(data);
         this.janusService.createRoom(connection, data.options);
     }
     onAnswer(connection, data) {
