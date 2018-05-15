@@ -51,7 +51,6 @@ class Server {
         }));
         app.use(cookieParser());
         app.use(methodOverride());
-        passport.use(authentication_srv_1.AuthenticationService.createStrategy());
         passport.use(authentication_srv_1.AuthenticationService.createJWTStrategy());
         app.use(passport.initialize());
         app.use(passport.session());

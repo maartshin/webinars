@@ -65,8 +65,10 @@ export class SocketController{
         });
 
         ws.on("close", () => {
-            connection.getSession().destroy().then(()=>{
-                console.log("Janus Gateway session destroyed");
+            this.janusService.stopStreaming(connection).then(() => {
+                connection.getSession().destroy().then(()=>{
+                    console.log("Janus Gateway session destroyed");
+                });
             });
         });
     }
@@ -79,7 +81,7 @@ export class SocketController{
         this.eventEmitter.on("ice", this.trickleIce);
         this.eventEmitter.on("onanswer", this.onAnswer);
         this.eventEmitter.on("rooms", this.getRooms);
-        this.eventEmitter.on("stoprecording", this.stopRecording);
+        this.eventEmitter.on("stopstreaming", this.stopStreaming);
     }
 
     private invokeEvent(connection, data){
@@ -99,7 +101,7 @@ export class SocketController{
                 break;
             case "rooms" : this.getRooms(connection, data);
                 break;
-            case "stoprecording": this.stopRecording(connection, data);
+            case "stopstreaming": this.stopStreaming(connection, data);
                 break;
             default:
                 ws.send(JSON.stringify({ event: "error",  error: "Unknown event"}));
@@ -148,8 +150,8 @@ export class SocketController{
         this.janusService.trickle(connection, data);
     }
 
-    private stopRecording(connection, data){
-        this.janusService.stopRecording(connection);
+    private stopStreaming(connection, data){
+        this.janusService.stopStreaming(connection);
     }
 }
 

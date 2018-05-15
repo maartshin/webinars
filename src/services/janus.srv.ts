@@ -6,7 +6,6 @@ import * as util from "util";
 import { injectable } from "inversify";
 import { Capture } from "../models/capture";
 import { Stream } from "../models/stream";
-// import { Schema } from "mongoose";
 
 @injectable()
 export class JanusService{
@@ -74,7 +73,7 @@ export class JanusService{
             var answerSdp = publisherHandle.getAnswer();
             console.log(answerSdp);
             
-            let filename = this.generateVideoName(publisherHandle.getRoom(), publisherHandle.getPublisherId());
+            let filename = this.generateFilename(publisherHandle.getRoom(), publisherHandle.getPublisherId());
             console.log(filename);
             publisherHandle.configure({
                 filename: filename,
@@ -178,36 +177,100 @@ export class JanusService{
         });
     }
 
-    public stopRecording(connection){
-        console.log("stopping recording");
-        console.log(connection.getPublisherHandles());
-        let promises = [];
+    private stopRecording(handle){
+        let feed = handle.getPublisherId();
+        let room = handle.getRoom();
 
-        for(let handle of connection.getPublisherHandles()){
-            let feed = handle.getPublisherId();
-            let room = handle.getRoom();
-            
-            let promise = handle.configure({
-                record:false
-            }).then(() => {
-                console.log("recording stopped");
-                let name = this.generateVideoName(room, feed)+"-video";
-                console.log(name);
-                return this.processVideo(name, room, feed);
+        let audio = true;
+        
+        return handle.configure({
+            record:false
+        }).then(() => {
+            console.log("recording stopped");
+            if(!audio){
+                return this.processVideo(room, feed);
+            }
+            let videoPromise = this.processVideo(room, feed);
+            let audioPromise = this.processAudio(room, feed);
+            Promise.all([videoPromise, audioPromise]).then(filenames => {
+                let mergedName = this.generateMergedName(room, feed, "webm");
+                let videoFilename = filenames[0];
+                let audioFilename = filenames[1];
+                this.mergeVideoAndAudio(videoFilename, audioFilename, mergedName).then(merged => {
+                    this.updateStreamProcessedStatus(feed, merged);
+                });
             });
-
-            promises.push(promise);
-            // break;
-        }
-        Promise.all(promises).then(()=>{
-            console.log("all videos processed");
+            Promise.resolve();
         });
     }
 
-    public processVideo(name, room, feed){
+    private mergeVideoAndAudio(videoFilename, audioFilename, mergedName){
+        console.log("starting merge process");
+        let recDir = process.env.REC_DIR;
+        let videoLocation = recDir + videoFilename;
+        let audioLocation = recDir + audioFilename;
+        let filename = recDir + mergedName;
+        let cmd = util.format("ffmpeg -i %s -i %s -c:v copy -c:a opus -strict experimental %s", audioLocation, videoLocation, filename);
+        console.log(cmd);
+        return new Promise((resolve, reject) => {
+            exec(cmd, (err, stdout, stderr) => {
+                if(err){
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                console.log("audio and video merged");
+                resolve(mergedName);
+            });
+        });
+    }
+
+    private isRecording(room): Promise<Boolean>{
+        return Capture.findOne({ videoroom: room }).then((capture,  err) => {
+            if(err){
+                console.log(err);
+                return;
+            }
+            return capture.record;
+        });
+    }
+
+    public stopStreaming(connection){
+        let promises = [];
+        let room = null;
+
+        for(let handle of connection.getPublisherHandles()){
+            let feed = handle.getPublisherId();
+            room = handle.getRoom();
+            let promise = this.isRecording(room).then((recording) => {
+                if(recording){
+                    return this.stopRecording(handle);
+                }
+                Promise.resolve();
+            })
+            promises.push(promise);
+        }
+
+        return Promise.all(promises).then(() => {
+            return this.destroyRoom(connection, room);
+        });
+    }
+
+    private destroyRoom(connection, room){
+        console.log("destroying room");
+        let handle = connection.getPublisherHandles()[0];
+        return handle.destroy({room: room}).then(msg => {
+            console.log(msg);
+            console.log("room destroyed");
+            Promise.resolve();
+        });
+    }
+
+    public processVideo(room, feed){
+        let name = this.generateVideoName(room, feed);
         let recDir = process.env.REC_DIR;
         let bin = process.env.REC_TOOL_PATH;
-        let fileName = this.generateProcessedVideoName(name, "vp8");
+        let fileName = this.generateProcessedName(name, "vp8");
         let raw = name+".mjr";
         let cmd = util.format("%s %s %s",bin, recDir+raw, recDir+fileName);
         this.endCapture(room);
@@ -224,7 +287,32 @@ export class JanusService{
                 console.log("Post-processing done");
                 console.log("should update db");
                 this.updateStreamProcessedStatus(feed, fileName);
-                resolve();
+                resolve(fileName);
+            });
+        });
+    }
+    
+
+    public processAudio(room, feed){
+        let name = this.generateAudioName(room, feed);
+        let recDir = process.env.REC_DIR;
+        let bin = process.env.REC_TOOL_PATH;
+        let fileName = this.generateProcessedName(name, "opus");
+        let raw = name+".mjr";
+        let cmd = util.format("%s %s %s",bin, recDir+raw, recDir+fileName);
+        
+        return new Promise((resolve, reject) => {
+            exec(cmd, (err, stdout, stderr) => {
+                if(err){
+                    console.log(err);
+                    reject(null);
+                    return;
+                }
+                console.log(stdout);
+                console.log("Post-processing done");
+                console.log("should update db");
+                this.updateStreamAudioProcessedStatus(feed, fileName);
+                resolve(fileName);
             });
         });
     }
@@ -238,6 +326,7 @@ export class JanusService{
             capture.finished = new Date();
             capture.save();
         });
+
     }
 
     private updateStreamProcessedStatus(feed, filename){
@@ -252,13 +341,40 @@ export class JanusService{
         });
     }
 
-    private generateProcessedVideoName(name, format){
+    private updateStreamAudioProcessedStatus(feed, filename){
+        Stream.findOne({feed: feed}).then((stream, err) => {
+            if(err){
+                console.log(err);
+                return;
+            }
+            stream.audioProcessed = true;
+            stream.save();
+        });
+    }
+
+    private generateFilename(room, feed){
+        return util.format("%s_%s", room, feed);
+    }
+
+    private generateProcessedName(name, format){
         let extension = this.getExtension(format);
         return util.format("%s_processed.%s", name, extension);
     }
 
+    private generateMergedName(room, feed, format){
+        let videoName = this.generateVideoName(room, feed);
+        let extension = this.getExtension(format);
+        return util.format("%s-audio_merged.%s", videoName, extension);
+    }
+
     private generateVideoName(room, feed){
-        return util.format("%s_%s", room, feed);
+        let filename = this.generateFilename(room, feed);
+        return util.format("%s-video", filename);
+    }
+
+    private generateAudioName(room, feed){
+        let filename = this.generateFilename(room, feed);
+        return util.format("%s-audio", filename);
     }
 
     private getExtension(format:string){

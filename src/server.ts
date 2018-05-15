@@ -85,7 +85,7 @@ export class Server {
         //use override middlware
         app.use(methodOverride());
 
-        passport.use(AuthenticationService.createStrategy());
+        // passport.use(AuthenticationService.createStrategy());
         passport.use(AuthenticationService.createJWTStrategy());
 
         app.use(passport.initialize());

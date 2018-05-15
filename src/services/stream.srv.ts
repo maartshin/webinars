@@ -10,6 +10,7 @@ export class StreamService{
 
     public getStream(filename, req, res){
         let path = util.format("%s/%s", this.recDir, filename);
+        console.log(path);
         let stat = fs.statSync(path);
         let fileSize = stat.size;
         let range = req.headers.range;

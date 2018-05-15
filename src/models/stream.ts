@@ -7,6 +7,7 @@ export interface IStreamModel extends IStream, Document {
 export interface IStream{
     feed: string;
     processed: boolean;
+    audioProcessed: boolean;
     filename: string;
     raw:string;
 }
@@ -19,6 +20,11 @@ export var StreamSchema: Schema = new Schema({
         trim: true
     },
     processed: {
+        type: Boolean,
+        required: false,
+        default: false
+    },
+    audioProcessed: {
         type: Boolean,
         required: false,
         default: false
