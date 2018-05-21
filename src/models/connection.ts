@@ -4,9 +4,18 @@ export class Connection{
     private janusSession;
     private publisherHandlers = [];
     private listenerHandlers = {};
+    private id;
 
     constructor(socket){
         this.socket = socket;
+    }
+
+    public setUser(id){
+        this.id = id;
+    }
+
+    public getUser(){
+        return this.id;
     }
 
     public getSocket(){

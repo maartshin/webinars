@@ -12,6 +12,7 @@ const util = require("util");
 const inversify_1 = require("inversify");
 const capture_1 = require("../models/capture");
 const stream_1 = require("../models/stream");
+const user_1 = require("../models/user");
 let JanusService = class JanusService {
     constructor() {
         let host = process.env.JANUS_HOST;
@@ -88,6 +89,14 @@ let JanusService = class JanusService {
         let capture = new capture_1.Capture(model);
         capture.save().then((capture) => {
             console.log(capture);
+        });
+        user_1.User.findOne({ id: connection.getUser() }).then((user, err) => {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            user.captures.push(capture._id);
+            user.save();
         });
     }
     addStreamToDatabase(connection, room, feed) {

@@ -4,6 +4,9 @@ import * as cookieParser from "cookie-parser";
 import { Server } from "./server";
 import { Connection } from "./models/connection";
 import { EventEmitter } from "events";
+import TYPES from "./constant/types";
+import { inject } from 'inversify';
+import { AuthenticationService } from "./services/authentication.srv";
 
 export class SocketController{
 
@@ -11,6 +14,7 @@ export class SocketController{
     // private janusService: JanusService;
 
     janusService:JanusService = new JanusService();
+    authenticationService: AuthenticationService = new AuthenticationService();
     socket: any;
     sessions = {};
     connections: Connection[] = [];
@@ -21,17 +25,22 @@ export class SocketController{
     }
 
     public static init(ws: WebSocket, req){
-        // console.log(req);
+        let token = req["headers"]["sec-websocket-protocol"];
+        console.log(token);
+        console.log(req.isAuthenticated());
+        let user = AuthenticationService.isAuthenticated(token);
+        if(!user){
+            ws.close();
+            return;
+        }
         let controller = new SocketController();
-        // controller.addSession(req);
-        // controller.setSocket(ws);
-        
-        let connection = controller.addConnection(ws);
+        let connection = controller.addConnection(ws, user);
         controller.addEvents(connection);
     }
 
-    private addConnection(ws){
+    private addConnection(ws, user){
         let connection: Connection = new Connection(ws);
+        connection.setUser(user._id);
         this.janusService.connect(connection);
         this.connections.push(connection);
         console.log("adding connection");
@@ -41,7 +50,6 @@ export class SocketController{
 
     private addSession(req){
         console.log("Adding session");
-        // console.log(req);
         cookieParser()(req, null, (err) => {
             console.log("parsing cookie");
             var sessionID = req.signedCookies;

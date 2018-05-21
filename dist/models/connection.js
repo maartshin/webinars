@@ -6,6 +6,12 @@ class Connection {
         this.listenerHandlers = {};
         this.socket = socket;
     }
+    setUser(id) {
+        this.id = id;
+    }
+    getUser() {
+        return this.id;
+    }
     getSocket() {
         return this.socket;
     }

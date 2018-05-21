@@ -6,6 +6,7 @@ import * as util from "util";
 import { injectable } from "inversify";
 import { Capture } from "../models/capture";
 import { Stream } from "../models/stream";
+import { User } from "../models/user";
 
 @injectable()
 export class JanusService{
@@ -86,7 +87,7 @@ export class JanusService{
         });
     }
 
-    private addCaptureToDatabase(connection, room, options){
+    private addCaptureToDatabase(connection: Connection, room, options){
         let model={
             title: options.description,
             finished: null,
@@ -98,7 +99,14 @@ export class JanusService{
         capture.save().then((capture) => {
             console.log(capture);
         });
-        // capture._id;
+        User.findOne( {  id: connection.getUser() }).then((user, err) => {
+            if(err){
+                console.log(err);
+                return;
+            }
+            user.captures.push(capture._id);
+            user.save();
+        });
     }
 
     private addStreamToDatabase(connection, room, feed){

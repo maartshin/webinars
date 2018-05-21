@@ -18,10 +18,6 @@ export class UserController {
     @inject(TYPES.AuthenticationService)
     private authenticationService: AuthenticationService;
 
-    private authenticationMiddleware(req: Request, res: Response, next: NextFunction) {
-        passport.authenticate("jwt", {session:false});
-    }
-
     @httpGet("/")
     public getMessage(){
         return { message:"this is a user router" };
@@ -44,6 +40,7 @@ export class UserController {
     public login(@request() request: Request, @response() response: Response){
         return this.userService.login(request.body).then(res => {
             if(!res["success"]){
+                console.log(res);
                 response.status(403);
                 return res;
             }

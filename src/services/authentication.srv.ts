@@ -31,6 +31,22 @@ export class AuthenticationService{
         }, this.getUserFromDatabase);
     }
 
+    public static isAuthenticated(token){
+        return jwt.verify(token, process.env.JWT_SECRET, (err, encoded) => {
+            if(err){
+                console.log(err);
+                return null;
+            }
+            return User.findById(encoded._id).then(user => {
+                console.log(user);
+                return user;
+            }).catch((err) => {
+                console.log(err);
+                return null;
+            });
+        });
+    }
+
     private static getUserFromDatabase(jwtPayload, cb){
         return User.findById(jwtPayload._id).then(user => {
             return cb(null, user);

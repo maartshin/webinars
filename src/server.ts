@@ -31,8 +31,6 @@ export class Server {
     private port: string | number;
     private server: https.Server;
     private socket: WebSocket.Server;
-    // private app: express.Application;
-    // private static store = new session.MemoryStore();
 
     public static bootstrap():Server{
         return new Server();
@@ -85,7 +83,6 @@ export class Server {
         //use override middlware
         app.use(methodOverride());
 
-        // passport.use(AuthenticationService.createStrategy());
         passport.use(AuthenticationService.createJWTStrategy());
 
         app.use(passport.initialize());

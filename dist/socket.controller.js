@@ -4,21 +4,32 @@ const janus_srv_1 = require("./services/janus.srv");
 const cookieParser = require("cookie-parser");
 const connection_1 = require("./models/connection");
 const events_1 = require("events");
+const authentication_srv_1 = require("./services/authentication.srv");
 class SocketController {
     constructor() {
         this.janusService = new janus_srv_1.JanusService();
+        this.authenticationService = new authentication_srv_1.AuthenticationService();
         this.sessions = {};
         this.connections = [];
         this.eventEmitter = new events_1.EventEmitter();
         this.addEventListeners();
     }
     static init(ws, req) {
+        let token = req["headers"]["sec-websocket-protocol"];
+        console.log(token);
+        console.log(req.isAuthenticated());
+        let user = authentication_srv_1.AuthenticationService.isAuthenticated(token);
+        if (!user) {
+            ws.close();
+            return;
+        }
         let controller = new SocketController();
-        let connection = controller.addConnection(ws);
+        let connection = controller.addConnection(ws, user);
         controller.addEvents(connection);
     }
-    addConnection(ws) {
+    addConnection(ws, user) {
         let connection = new connection_1.Connection(ws);
+        connection.setUser(user._id);
         this.janusService.connect(connection);
         this.connections.push(connection);
         console.log("adding connection");
