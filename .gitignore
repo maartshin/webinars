@@ -1,3 +1,7 @@
-node_modules
+!node_modules/
+
+node_modules/*
+!node_modules/janus-videoroom-client
+
 dist
 .tscache
