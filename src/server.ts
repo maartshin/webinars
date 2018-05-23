@@ -42,17 +42,8 @@ export class Server {
         server.setConfig(this.config);
         let app = server.build();
         this.createServer(app);
-        // this.configureRoutes(app);
         this.sockets();
         this.listen();
-        // serverInstance.listen(this.port, );
-        // let app = express();
-        // this.config(app);
-        // this.createServer(app);
-        // this.sockets();
-        // this.configureRoutes(app);
-        // this.listen();
-        // this.addErrorHandler();
     }
 
     private config(app) {
@@ -63,7 +54,7 @@ export class Server {
         const MONGODB_CONNECTION: string = util.format("mongodb://%s:%s/%s", host, port, db);
 
         //add static paths
-        app.use(express.static(path.join(__dirname, "public")));
+        app.use(express.static(path.join(__dirname, "/public")));
 
         //use logger middlware
         app.use(logger("dev"));
@@ -76,8 +67,6 @@ export class Server {
             extended: true
         }));
 
-        //use cookie parser middleware
-        // this.app.use(cookieParser("SECRET_GOES_HERE"));
         app.use(cookieParser());
 
         //use override middlware
