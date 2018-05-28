@@ -16,7 +16,8 @@ export class JanusService{
         let host = process.env.JANUS_HOST;
         let port = process.env.JANUS_PORT;
         this.janusClient = new Janus({
-            url: util.format("wss://%s:%s", host, port)
+            url: util.format("wss://%s:%s", host, port),
+            token: process.env.JANUS_SECRET
         });
     }
 
