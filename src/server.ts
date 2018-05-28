@@ -103,8 +103,8 @@ export class Server {
     }
 
     private createServer(app){
-        let privateKey = fs.readFileSync(__dirname + '/../ssl/privateKey.key');
-        let certificate = fs.readFileSync(__dirname + '/../ssl/certificate.crt');
+        let privateKey = fs.readFileSync(process.env.PRIVATE_KEY_LOCATION);
+        let certificate = fs.readFileSync(process.env.CERT_LOCATION);
         this.server = https.createServer({
             key: privateKey,
 	        cert: certificate

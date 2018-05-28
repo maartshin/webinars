@@ -30,6 +30,7 @@ export class SocketController{
         console.log(req.isAuthenticated());
         let user = AuthenticationService.isAuthenticated(token);
         if(!user){
+            console.log("Authentication failed");
             ws.close();
             return;
         }
